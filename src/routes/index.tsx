@@ -46,6 +46,26 @@ const TRANSITIONS: Record<string, string> = {
 };
 
 // Auth gate modal for favorites
+function HeaderAuthButtons({ onAuth }: { onAuth: () => void }) {
+  const signedUp = (() => { try { return localStorage.getItem("cc_signedup") === "true"; } catch { return false; } })();
+  const name = (() => { try { return localStorage.getItem("cc_name") || localStorage.getItem("cc_email") || ""; } catch { return ""; } })();
+  if (signedUp) {
+    return (
+      <span className="text-xs text-muted-foreground hidden sm:inline">
+        Hi, {name ? name.split("@")[0] : "you"} ??
+      </span>
+    );
+  }
+  return (
+    <button
+      onClick={onAuth}
+      className="text-xs text-muted-foreground hover:text-foreground transition hidden sm:inline"
+    >
+      Sign in
+    </button>
+  );
+}
+
 function AuthGateModal({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
@@ -635,3 +655,4 @@ function Landing({ onBegin, onFavourites }: { onBegin: () => void; onFavourites:
     </div>
   );
 }
+

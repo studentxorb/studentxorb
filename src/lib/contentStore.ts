@@ -13,8 +13,6 @@ export type ContentSnapshot = {
   directions: string[];
   states: string[];
   settings: AppSettings;
-  version?: number;
-  lastSavedAt?: number;
 };
 
 const KEY = "xorb:content:v1";
@@ -27,8 +25,6 @@ function defaults(): ContentSnapshot {
     directions: [...DIRECTIONS],
     states: [...STATES],
     settings: { allowStateMismatch: false },
-    version: 0,
-    lastSavedAt: undefined,
   };
 }
 
@@ -36,37 +32,92 @@ export function loadContent(): ContentSnapshot {
   if (typeof window === "undefined") return defaults();
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return defaults();
-    const parsed = JSON.parse(raw) as Partial<ContentSnapshot>;
     const base = defaults();
+    const parsed = raw ? JSON.parse(raw) as Partial<ContentSnapshot> : {};
+    // Load colleges from separate key (may be large)
+    const savedColleges = loadColleges();
     return {
-      colleges: parsed.colleges ?? base.colleges,
+      colleges: savedColleges ?? parsed.colleges ?? base.colleges,
       feelings: parsed.feelings ?? base.feelings,
       directions: parsed.directions ?? base.directions,
       states: parsed.states ?? base.states,
       settings: { ...base.settings, ...(parsed.settings ?? {}) },
-      version: parsed.version ?? 0,
-      lastSavedAt: parsed.lastSavedAt,
     };
   } catch {
     return defaults();
   }
 }
 
+// Slim a college down to minimum fields for storage
+function slimCollege(c: College): Partial<College> {
+  return {
+    id: c.id, name: c.name, location: c.location, state: c.state,
+    ownership: c.ownership, type: c.type, contextTag: c.contextTag,
+    website: c.website, tier: c.tier, vibe: c.vibe,
+    ...(c.established ? { established: c.established } : {}),
+    ...(c.distanceFromMetro ? { distanceFromMetro: c.distanceFromMetro } : {}),
+    ...(c.category ? { category: c.category } : {}),
+    ...(c.order !== undefined ? { order: c.order } : {}),
+  };
+}
+
+const COLLEGES_KEY = "xorb:colleges:v1";
+
+function saveColleges(colleges: College[]) {
+  // Save colleges separately — slimmed down to save space
+  const slimmed = colleges.map(slimCollege);
+  const json = JSON.stringify(slimmed);
+  // If over 4MB warn but still try
+  if (json.length > 4_000_000) {
+    console.warn(`[Campus Compass] College data is large (${(json.length/1024/1024).toFixed(1)}MB). Storing top 5000 only.`);
+    const trimmed = slimmed.slice(0, 5000);
+    try {
+      localStorage.setItem(COLLEGES_KEY, JSON.stringify(trimmed));
+    } catch {
+      // If still fails, store top 2000
+      localStorage.setItem(COLLEGES_KEY, JSON.stringify(slimmed.slice(0, 2000)));
+      console.warn("[Campus Compass] Storage very limited — storing top 2000 colleges only.");
+    }
+    return;
+  }
+  try {
+    localStorage.setItem(COLLEGES_KEY, json);
+  } catch {
+    // Quota exceeded — trim to 3000
+    try {
+      localStorage.setItem(COLLEGES_KEY, JSON.stringify(slimmed.slice(0, 3000)));
+    } catch {
+      localStorage.setItem(COLLEGES_KEY, JSON.stringify(slimmed.slice(0, 1000)));
+    }
+  }
+}
+
+function loadColleges(): College[] | null {
+  try {
+    const raw = localStorage.getItem(COLLEGES_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as College[];
+  } catch { return null; }
+}
+
 export function saveContent(next: ContentSnapshot) {
   if (typeof window === "undefined") return;
-  const stamped: ContentSnapshot = {
-    ...next,
-    version: (next.version ?? 0) + 1,
-    lastSavedAt: Date.now(),
-  };
-  localStorage.setItem(KEY, JSON.stringify(stamped));
+  // Save colleges separately
+  saveColleges(next.colleges);
+  // Save everything else (small data) in main key
+  const withoutColleges = { ...next, colleges: [] };
+  try {
+    localStorage.setItem(KEY, JSON.stringify(withoutColleges));
+  } catch {
+    console.warn("[Campus Compass] Could not save settings to localStorage");
+  }
   window.dispatchEvent(new CustomEvent(EVT));
 }
 
 export function resetContent() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(KEY);
+  localStorage.removeItem(COLLEGES_KEY);
   window.dispatchEvent(new CustomEvent(EVT));
 }
 
@@ -140,7 +191,7 @@ export function useAnalytics(): AnalyticsEvent[] {
 
 // ---- Demo admin auth (frontend only) ----
 const AUTH_KEY = "xorb:admin:session";
-export const ADMIN_DEMO = { username: "admin", password: "admin123" };
+export const ADMIN_DEMO = { username: "studentxorb@gmail.com", password: "Admin123." };
 
 export function adminLogin(username: string, password: string): boolean {
   if (username === ADMIN_DEMO.username && password === ADMIN_DEMO.password) {

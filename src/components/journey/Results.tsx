@@ -71,7 +71,15 @@ function buildWhyItFits(
   const feelingMatched = !!(feeling && feelingLabel && c.vibe.includes(feeling));
   if (feelingMatched && feelingLabel) bits.push(`matches your love of ${feelingLabel.toLowerCase()}`);
 
-  const directionMatched = !!(direction && c.type === direction);
+  const dirTypeMap: Record<string, string[]> = {
+    Technology: ["Engineering"],
+    Medical: ["Medical"],
+    Creative: ["Arts"],
+    Business: ["Commerce"],
+    Research: ["Engineering", "Others"],
+    Exploring: ["Engineering", "Medical", "Arts", "Commerce", "Others"],
+  };
+  const directionMatched = !!(direction && (dirTypeMap[direction] ?? [direction]).includes(c.type));
   if (directionMatched && direction) bits.push(`a strong ${direction.toLowerCase()} path`);
 
   const stateMatched = states.includes(c.state);
@@ -156,9 +164,24 @@ export function Results({ feeling, direction, states, loading, onRefine, onResta
 
   const feelingLabel = useMemo(() => feelings.find((f) => f.id === feeling)?.label ?? null, [feelings, feeling]);
 
+  // Map new direction labels to college types
+  const directionTypeMap: Record<string, string[]> = {
+    Technology: ["Engineering"],
+    Medical: ["Medical"],
+    Creative: ["Arts"],
+    Business: ["Commerce"],
+    Research: ["Engineering", "Others"],
+    Exploring: ["Engineering", "Medical", "Arts", "Commerce", "Others"],
+  };
+
   const filtered = useMemo(() => {
     let pool = colleges;
-    if (direction) pool = pool.filter((c) => c.type === direction);
+    if (direction) {
+      const mapped = directionTypeMap[direction];
+      if (mapped && !mapped.includes("Engineering") || (mapped && mapped.length < 5)) {
+        pool = pool.filter((c) => mapped.includes(c.type));
+      }
+    }
     if (states.length > 0 && !settings.allowStateMismatch) {
       // STRICT: only colleges from the user's chosen state(s)
       pool = pool.filter((c) => states.includes(c.state));

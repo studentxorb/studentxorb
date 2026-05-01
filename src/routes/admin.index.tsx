@@ -13,7 +13,7 @@ import {
   type Feeling,
 } from "@/lib/contentStore";
 import type { College } from "@/lib/colleges";
-import { LogOut, Plus, Trash2, RotateCcw, Save, GraduationCap, Sparkles, Compass, MapPin, ExternalLink, Search, Download, Upload, BarChart3, FileSpreadsheet, Eye, MousePointerClick, GripVertical, Shield, Link2, LineChart, Copy, Check, Clock } from "lucide-react";
+import { LogOut, Plus, Trash2, RotateCcw, Save, GraduationCap, Sparkles, Compass, MapPin, ExternalLink, Search, Download, Upload, BarChart3, FileSpreadsheet, Eye, MousePointerClick, GripVertical, Shield } from "lucide-react";
 import { parseFile } from "@/lib/fileImport";
 
 export const Route = createFileRoute("/admin/")({
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/admin/")({
   component: AdminPage,
 });
 
-type Tab = "colleges" | "feelings" | "directions" | "states" | "import" | "analytics" | "chart" | "share";
+type Tab = "colleges" | "feelings" | "directions" | "states" | "import" | "analytics";
 
 function AdminPage() {
   const navigate = useNavigate();
@@ -44,8 +44,6 @@ function AdminPage() {
     states: content.states.length,
     import: 0,
     analytics: 0,
-    chart: 0,
-    share: 0,
   };
 
   return (
@@ -71,7 +69,6 @@ function AdminPage() {
           <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Admin</span>
         </div>
         <div className="flex items-center gap-2">
-          <LastSavedBadge version={content.version ?? 0} ts={content.lastSavedAt} />
           <ExportButton />
           <button
             onClick={() => {
@@ -118,8 +115,6 @@ function AdminPage() {
               { id: "states", label: "States", icon: MapPin },
               { id: "import", label: "Import", icon: Upload },
               { id: "analytics", label: "Analytics", icon: BarChart3 },
-              { id: "chart", label: "Trends", icon: LineChart },
-              { id: "share", label: "Share links", icon: Link2 },
             ] as const
           ).map((t) => {
             const active = tab === t.id;
@@ -161,8 +156,6 @@ function AdminPage() {
             {tab === "states" && <StatesPanel />}
             {tab === "import" && <ImportPanel />}
             {tab === "analytics" && <AnalyticsPanel />}
-            {tab === "chart" && <TrendsPanel />}
-            {tab === "share" && <ShareLinksPanel />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -395,454 +388,6 @@ function CollegesPanel() {
           onSave={save}
         />
       )}
-    </div>
-  );
-}
-
-/* ----------------- Last saved badge ----------------- */
-
-function LastSavedBadge({ version, ts }: { version: number; ts?: number }) {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => force((n) => n + 1), 30000);
-    return () => window.clearInterval(id);
-  }, []);
-  const label = (() => {
-    if (!ts) return "Not saved yet";
-    const diff = Date.now() - ts;
-    if (diff < 60_000) return "Saved just now";
-    const m = Math.floor(diff / 60_000);
-    if (m < 60) return `Saved ${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `Saved ${h}h ago`;
-    return `Saved ${new Date(ts).toLocaleDateString()}`;
-  })();
-  return (
-    <div
-      className="hidden sm:flex text-[11px] px-3 py-2 rounded-full glass items-center gap-1.5 text-muted-foreground"
-      title={ts ? new Date(ts).toLocaleString() : "No saves yet"}
-    >
-      <Clock className="w-3 h-3 text-primary" />
-      <span>{label}</span>
-      <span className="px-1.5 py-0.5 rounded-full bg-primary/15 text-primary tabular-nums text-[10px]">v{version}</span>
-    </div>
-  );
-}
-
-/* ----------------- Trends chart ----------------- */
-
-function TrendsPanel() {
-  const events = useAnalytics();
-  const [days, setDays] = useState<7 | 14 | 30>(14);
-
-  const series = useMemo(() => {
-    const now = new Date();
-    const buckets: { key: string; label: string; views: number; clicks: number; shares: number }[] = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-      const key = d.toISOString().slice(0, 10);
-      buckets.push({
-        key,
-        label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-        views: 0,
-        clicks: 0,
-        shares: 0,
-      });
-    }
-    const idx = new Map(buckets.map((b, i) => [b.key, i]));
-    for (const e of events) {
-      const k = new Date(e.ts).toISOString().slice(0, 10);
-      const i = idx.get(k);
-      if (i === undefined) continue;
-      if (e.type === "view") buckets[i].views++;
-      else if (e.type === "click") buckets[i].clicks++;
-      else if (e.type === "share_open") buckets[i].shares++;
-    }
-    return buckets;
-  }, [events, days]);
-
-  const max = Math.max(1, ...series.flatMap((s) => [s.views, s.clicks, s.shares]));
-  const w = 720;
-  const h = 240;
-  const pad = { l: 36, r: 12, t: 16, b: 28 };
-  const innerW = w - pad.l - pad.r;
-  const innerH = h - pad.t - pad.b;
-  const stepX = series.length > 1 ? innerW / (series.length - 1) : 0;
-  const px = (i: number) => pad.l + i * stepX;
-  const py = (v: number) => pad.t + innerH - (v / max) * innerH;
-
-  const path = (key: "views" | "clicks" | "shares") =>
-    series.map((s, i) => `${i === 0 ? "M" : "L"} ${px(i).toFixed(1)} ${py(s[key]).toFixed(1)}`).join(" ");
-
-  const colors = {
-    views: "oklch(0.78 0.15 230)",
-    clicks: "oklch(0.74 0.18 145)",
-    shares: "oklch(0.78 0.18 30)",
-  };
-
-  const totals = series.reduce(
-    (a, s) => ({ views: a.views + s.views, clicks: a.clicks + s.clicks, shares: a.shares + s.shares }),
-    { views: 0, clicks: 0, shares: 0 }
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-baseline justify-between flex-wrap gap-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-1">Daily trend</div>
-          <h2 className="font-display text-2xl">Views, clicks & share-link opens</h2>
-        </div>
-        <div className="flex gap-1 text-xs">
-          {([7, 14, 30] as const).map((d) => (
-            <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={`px-3 py-1.5 rounded-full transition ${
-                days === d ? "text-primary-foreground" : "glass text-muted-foreground hover:text-foreground"
-              }`}
-              style={days === d ? { background: "var(--gradient-aurora)" } : undefined}
-            >
-              {d}d
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="glass rounded-3xl p-6 overflow-x-auto">
-        <div className="flex flex-wrap gap-4 mb-4 text-xs">
-          {([
-            ["Views", totals.views, colors.views],
-            ["Clicks", totals.clicks, colors.clicks],
-            ["Share opens", totals.shares, colors.shares],
-          ] as const).map(([l, v, c]) => (
-            <div key={l} className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
-              <span className="text-muted-foreground">{l}</span>
-              <span className="tabular-nums font-medium">{v}</span>
-            </div>
-          ))}
-        </div>
-        <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto min-w-[640px]">
-          {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-            const y = pad.t + innerH * (1 - t);
-            const v = Math.round(max * t);
-            return (
-              <g key={t}>
-                <line x1={pad.l} x2={w - pad.r} y1={y} y2={y} stroke="currentColor" strokeOpacity={0.06} />
-                <text x={pad.l - 6} y={y + 3} textAnchor="end" fontSize="9" fill="currentColor" opacity={0.4}>{v}</text>
-              </g>
-            );
-          })}
-          {series.map((s, i) =>
-            i % Math.max(1, Math.ceil(series.length / 7)) === 0 ? (
-              <text key={s.key} x={px(i)} y={h - 8} textAnchor="middle" fontSize="9" fill="currentColor" opacity={0.5}>
-                {s.label}
-              </text>
-            ) : null
-          )}
-          {(["views", "clicks", "shares"] as const).map((k) => (
-            <g key={k}>
-              <path d={path(k)} fill="none" stroke={colors[k]} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-              {series.map((s, i) => (
-                <circle key={s.key} cx={px(i)} cy={py(s[k])} r={2.5} fill={colors[k]}>
-                  <title>{`${s.label} · ${k}: ${s[k]}`}</title>
-                </circle>
-              ))}
-            </g>
-          ))}
-        </svg>
-      </div>
-
-      {events.length === 0 && (
-        <div className="text-center text-sm text-muted-foreground py-8">
-          No events yet — run the journey to populate trends.
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ----------------- Share-link generator ----------------- */
-
-type ShareCombo = { id: string; feeling: string | null; direction: string | null; states: string[] };
-
-function ShareLinksPanel() {
-  const content = useContent();
-  const events = useAnalytics();
-  const [combos, setCombos] = useState<ShareCombo[]>([]);
-  const [feeling, setFeeling] = useState<string>("");
-  const [direction, setDirection] = useState<string>("");
-  const [pickedStates, setPickedStates] = useState<string[]>([]);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const STORAGE = "xorb:share-combos:v1";
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE);
-      if (raw) setCombos(JSON.parse(raw));
-    } catch {}
-  }, []);
-  useEffect(() => {
-    localStorage.setItem(STORAGE, JSON.stringify(combos));
-  }, [combos]);
-
-  const buildUrl = (c: ShareCombo) => {
-    const sp = new URLSearchParams();
-    if (c.feeling) sp.set("f", c.feeling);
-    if (c.direction) sp.set("d", c.direction);
-    if (c.states.length) sp.set("s", c.states.join("|"));
-    sp.set("src", c.id);
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return `${origin}/?${sp.toString()}`;
-  };
-
-  const addOne = () => {
-    if (!feeling && !direction && pickedStates.length === 0) return;
-    const id = `sl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-    setCombos((p) => [{ id, feeling: feeling || null, direction: direction || null, states: [...pickedStates] }, ...p]);
-    setFeeling("");
-    setDirection("");
-    setPickedStates([]);
-  };
-
-  const generateAll = () => {
-    // Build a sensible matrix: every feeling × every direction, plus every state alone.
-    const fresh: ShareCombo[] = [];
-    const stamp = Date.now().toString(36);
-    let n = 0;
-    for (const f of content.feelings) {
-      for (const d of content.directions) {
-        fresh.push({
-          id: `sl-${stamp}-${(n++).toString(36)}`,
-          feeling: f.id,
-          direction: d,
-          states: [],
-        });
-      }
-    }
-    for (const s of content.states.slice(0, 12)) {
-      fresh.push({
-        id: `sl-${stamp}-s${(n++).toString(36)}`,
-        feeling: null,
-        direction: null,
-        states: [s],
-      });
-    }
-    setCombos((p) => [...fresh, ...p]);
-  };
-
-  const copy = async (c: ShareCombo) => {
-    const url = buildUrl(c);
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-    setCopiedId(c.id);
-    window.setTimeout(() => setCopiedId((x) => (x === c.id ? null : x)), 1600);
-  };
-
-  const remove = (id: string) => setCombos((p) => p.filter((c) => c.id !== id));
-
-  // Track opens per share id (using share_open events; src param is captured in collegeName)
-  const opensById = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const e of events) {
-      if (e.type !== "share_open") continue;
-      // collegeId carries the share id when present
-      if (e.collegeId && e.collegeId.startsWith("sl-")) {
-        map.set(e.collegeId, (map.get(e.collegeId) ?? 0) + 1);
-      }
-    }
-    return map;
-  }, [events]);
-
-  const totalOpens = useMemo(
-    () => events.filter((e) => e.type === "share_open").length,
-    [events]
-  );
-
-  const exportCsv = () => {
-    const header = ["share_id", "url", "feeling", "direction", "states", "opens"];
-    const rows = combos.map((c) =>
-      [
-        c.id,
-        buildUrl(c),
-        c.feeling ?? "",
-        c.direction ?? "",
-        c.states.join("|"),
-        opensById.get(c.id) ?? 0,
-      ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(",")
-    );
-    const csv = [header.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `xorb-share-links-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const toggleState = (s: string) =>
-    setPickedStates((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
-
-  return (
-    <div className="space-y-6">
-      <div className="glass rounded-3xl p-6 space-y-5">
-        <div className="flex items-baseline justify-between flex-wrap gap-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-1">Share-link studio</div>
-            <h2 className="font-display text-2xl">Build share URLs for any feeling / direction / state</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Each link carries an attribution id. Opens are tracked separately as <code>share_open</code> events.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={generateAll}
-              className="rounded-full px-4 py-2 text-xs font-medium text-primary-foreground flex items-center gap-1.5"
-              style={{ background: "var(--gradient-aurora)" }}
-              title="Generate links for every feeling × direction combo + each state"
-            >
-              <Sparkles className="w-3 h-3" /> Generate all combos
-            </button>
-            <button
-              onClick={exportCsv}
-              disabled={combos.length === 0}
-              className="rounded-full px-4 py-2 text-xs glass flex items-center gap-1.5 disabled:opacity-40"
-            >
-              <Download className="w-3 h-3" /> Export CSV
-            </button>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-3">
-          <label className="space-y-1 text-xs">
-            <span className="text-muted-foreground">Feeling</span>
-            <select value={feeling} onChange={(e) => setFeeling(e.target.value)} className={inputCls}>
-              <option value="">— any —</option>
-              {content.feelings.map((f) => (
-                <option key={f.id} value={f.id}>{f.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1 text-xs">
-            <span className="text-muted-foreground">Direction</span>
-            <select value={direction} onChange={(e) => setDirection(e.target.value)} className={inputCls}>
-              <option value="">— any —</option>
-              {content.directions.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-          </label>
-          <div className="space-y-1 text-xs">
-            <span className="text-muted-foreground">States ({pickedStates.length})</span>
-            <div className="glass rounded-xl p-2 max-h-28 overflow-y-auto flex flex-wrap gap-1">
-              {content.states.map((s) => {
-                const on = pickedStates.includes(s);
-                return (
-                  <button
-                    key={s}
-                    onClick={() => toggleState(s)}
-                    className={`text-[10px] px-2 py-1 rounded-full transition ${
-                      on ? "bg-primary text-primary-foreground" : "bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/[0.1]"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={addOne}
-          disabled={!feeling && !direction && pickedStates.length === 0}
-          className="rounded-full px-5 py-2 text-sm font-medium text-primary-foreground flex items-center gap-2 disabled:opacity-40"
-          style={{ background: "var(--gradient-aurora)" }}
-        >
-          <Plus className="w-3.5 h-3.5" /> Add share link
-        </button>
-      </div>
-
-      <div className="glass rounded-3xl p-6">
-        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
-          <div className="font-display text-lg">{combos.length} share links</div>
-          <div className="text-xs text-muted-foreground">{totalOpens} total share opens tracked</div>
-        </div>
-        {combos.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground py-8">
-            No share links yet. Build one above or click "Generate all combos".
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-[480px] overflow-y-auto">
-            {combos.map((c) => {
-              const url = buildUrl(c);
-              const opens = opensById.get(c.id) ?? 0;
-              const feelingLabel = content.feelings.find((f) => f.id === c.feeling)?.label;
-              return (
-                <div key={c.id} className="rounded-2xl border border-foreground/5 p-3 hover:bg-foreground/[0.02] transition">
-                  <div className="flex flex-wrap items-center gap-2 mb-2 text-[11px]">
-                    {feelingLabel && (
-                      <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{feelingLabel}</span>
-                    )}
-                    {c.direction && (
-                      <span className="px-2 py-0.5 rounded-full bg-foreground/[0.06]">{c.direction}</span>
-                    )}
-                    {c.states.map((s) => (
-                      <span key={s} className="px-2 py-0.5 rounded-full bg-foreground/[0.06]">{s}</span>
-                    ))}
-                    <span className="ml-auto px-2 py-0.5 rounded-full bg-primary/15 text-primary tabular-nums">
-                      {opens} open{opens === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={url}
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                      className="flex-1 bg-foreground/[0.04] rounded-lg px-3 py-2 text-xs font-mono outline-none truncate"
-                    />
-                    <button
-                      onClick={() => copy(c)}
-                      className="text-xs px-3 py-2 rounded-lg glass hover:ring-1 hover:ring-primary/40 flex items-center gap-1.5"
-                    >
-                      {copiedId === c.id ? <Check className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
-                      {copiedId === c.id ? "Copied" : "Copy"}
-                    </button>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs p-2 rounded-lg glass hover:ring-1 hover:ring-primary/40"
-                      title="Preview"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                    <button
-                      onClick={() => remove(c.id)}
-                      className="text-xs p-2 rounded-lg hover:bg-destructive/10 hover:text-destructive transition"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -1290,7 +835,12 @@ function ImportPanel() {
         setMessage("Couldn't find any colleges in that file. Check column names like 'name', 'state', 'type'.");
       } else {
         setPreview(colleges);
-        setMessage(`Found ${colleges.length} colleges. Review below and choose how to import.`);
+        const sizeWarning = colleges.length > 5000
+          ? ` ⚠️ Large dataset — only top 5,000 will be stored (localStorage limit). Consider using Supabase for full data.`
+          : colleges.length > 3000
+          ? ` ⚠️ Large dataset — storage may be limited to top 3,000 colleges.`
+          : "";
+        setMessage(`Found ${colleges.length} colleges. Review below and choose how to import.${sizeWarning}`);
       }
     } catch (e) {
       setMessage(`Error: ${(e as Error).message}`);

@@ -1,0 +1,14 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script>
+      const path = window.location.pathname;
+      const base = '/studentxorb';
+      const newPath = path.replace(base, '') || '/';
+      sessionStorage.setItem('redirect', newPath);
+      window.location.replace(base + '/');
+    </script>
+  </head>
+  <body></body>
+</html>

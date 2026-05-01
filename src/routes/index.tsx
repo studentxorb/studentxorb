@@ -1,26 +1,27 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Orb } from "@/components/Orb";
 import { FeelingStep } from "@/components/journey/FeelingStep";
+import { EnvironmentStep } from "@/components/journey/EnvironmentStep";
+import { FavouritesButton, FavouritesPanel } from "@/components/FavouritesPanel";
 import { DirectionStep } from "@/components/journey/DirectionStep";
 import { LocationStep } from "@/components/journey/LocationStep";
 import { Transition } from "@/components/journey/Transition";
 import { Results } from "@/components/journey/Results";
 import { FEELINGS } from "@/lib/colleges";
-import { Sparkles, Compass, MapPin, Heart, Users, ShieldCheck, ArrowRight, GraduationCap } from "lucide-react";
-import { CampusCompassLogo } from "@/components/CampusCompassLogo";
+import { Sparkles, Compass, MapPin, Heart, Users, ShieldCheck, ArrowRight, GraduationCap, Globe, BookOpen } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Student X'orb — From uncertainty to clarity" },
+      { title: "Student X'Orb — From uncertainty to clarity" },
       {
         name: "description",
         content:
           "A guided, conversational journey to discover the college that fits the life you want — not just the marks you have.",
       },
-      { property: "og:title", content: "Student X'orb — From uncertainty to clarity" },
+      { property: "og:title", content: "Student X'Orb — From uncertainty to clarity" },
       {
         property: "og:description",
         content: "An emotionally intelligent way to choose your college.",
@@ -30,19 +31,76 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Step = "intro" | "feeling" | "transition1" | "direction" | "location" | "loading" | "results";
+type Step =
+  | "intro"
+  | "feeling"
+  | "transition1"
+  | "environment"
+  | "direction"
+  | "location"
+  | "loading"
+  | "results";
 
 const TRANSITIONS: Record<string, string> = {
-  transition1: "Nice. Let's narrow this down a bit.",
+  transition1: "Nice. Now let's find your ideal environment.",
 };
+
+// Auth gate modal for favorites
+function AuthGateModal({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="glass rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--gradient-aurora)" }}>
+            <Heart className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="font-display text-2xl mb-2">Save your favourites</h2>
+          <p className="text-sm text-muted-foreground">Sign in or create an account to view and save your favourite colleges.</p>
+        </div>
+        <div className="flex flex-col gap-3">
+          <button
+            className="rounded-full py-3 font-medium text-primary-foreground w-full"
+            style={{ background: "var(--gradient-aurora)" }}
+          >
+            Sign Up
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-full py-3 font-medium text-foreground w-full glass ring-1 ring-foreground/10 hover:ring-foreground/20 transition"
+          >
+            Sign In
+          </button>
+          <button onClick={onClose} className="text-xs text-muted-foreground mt-1 hover:text-foreground transition">
+            Maybe later
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 function Index() {
   const [step, setStep] = useState<Step>("intro");
   const [feeling, setFeeling] = useState<string | null>(null);
+  const [environment, setEnvironment] = useState<string | null>(null);
+  const [favOpen, setFavOpen] = useState(false);
   const [direction, setDirection] = useState<string | null>(null);
   const [states, setStates] = useState<string[]>([]);
+  const [showAuthGate, setShowAuthGate] = useState(false);
 
-  // Hydrate from share link (?f=&d=&s=a|b)
+  // Hydrate from share link
   useEffect(() => {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
@@ -57,7 +115,6 @@ function Index() {
     }
   }, []);
 
-  // Listen for "reset to original" requests from Results.
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as
@@ -80,17 +137,17 @@ function Index() {
 
   const orbIntensity = useMemo(() => {
     let n = 0.3;
-    if (feeling) n += 0.15;
-    if (direction) n += 0.15;
+    if (feeling) n += 0.1;
+    if (environment) n += 0.1;
+    if (direction) n += 0.1;
     if (states.length > 0) n += 0.15;
     if (step === "results") n += 0.15;
     return Math.min(n, 1);
-  }, [feeling, direction, states, step]);
+  }, [feeling, environment, direction, states, step]);
 
-  // Auto-advance transition
   useEffect(() => {
     if (step === "transition1") {
-      const t = setTimeout(() => setStep("direction"), 1900);
+      const t = setTimeout(() => setStep("environment"), 1900);
       return () => clearTimeout(t);
     }
     if (step === "loading") {
@@ -104,6 +161,11 @@ function Index() {
     setTimeout(() => setStep("transition1"), 350);
   };
 
+  const handleEnvironment = (id: string) => {
+    setEnvironment(id);
+    setTimeout(() => setStep("direction"), 400);
+  };
+
   const handleDirection = (d: string) => {
     setDirection(d);
     setTimeout(() => setStep("location"), 400);
@@ -113,6 +175,7 @@ function Index() {
 
   const restart = () => {
     setFeeling(null);
+    setEnvironment(null);
     setDirection(null);
     setStates([]);
     setStep("intro");
@@ -120,9 +183,10 @@ function Index() {
 
   const refine = () => setStep("feeling");
 
-  // Progress dots
-  const stepIndex = ["intro", "feeling", "direction", "location", "results"].indexOf(
-    step === "transition1" ? "feeling" : step === "loading" ? "results" : step
+  // 6-step progress: feeling, environment, direction, location, explore, shortlist
+  const STEP_ORDER: Step[] = ["intro", "feeling", "environment", "direction", "location", "loading", "results"];
+  const stepIndex = STEP_ORDER.indexOf(
+    step === "transition1" ? "feeling" : step
   );
 
   const beginJourney = () => {
@@ -132,39 +196,53 @@ function Index() {
 
   return (
     <div className="min-h-screen relative overflow-x-hidden">
+      {/* Auth gate */}
+      <AnimatePresence>
+        {showAuthGate && <AuthGateModal onClose={() => setShowAuthGate(false)} />}
+      </AnimatePresence>
+
       {/* Top nav */}
-      <header className="fixed top-0 inset-x-0 z-50 px-6 md:px-10 py-5 flex items-center justify-between">
-        <button onClick={restart} className="flex items-center group">
-          <CampusCompassLogo size={32} showWordmark={true} />
+      <header className="fixed top-0 inset-x-0 z-40 px-6 md:px-10 py-5 flex items-center justify-between">
+        <button onClick={restart} className="flex items-center gap-2.5 group">
+          <div className="w-7 h-7 rounded-full relative" style={{ background: "var(--gradient-aurora)" }}>
+            <div className="absolute inset-0.5 rounded-full bg-background/60 backdrop-blur-sm" />
+            <div className="absolute inset-1.5 rounded-full" style={{ background: "var(--gradient-aurora)" }} />
+          </div>
+          <span className="font-display text-lg tracking-tight">
+            Student <span className="italic text-aurora">X'Orb</span>
+          </span>
         </button>
 
         {step !== "intro" && (
           <div className="hidden md:flex items-center gap-2">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
                 className={`h-1 rounded-full transition-all duration-700 ${
-                  i <= stepIndex ? "w-8 bg-primary" : "w-4 bg-foreground/15"
+                  i < stepIndex ? "w-8 bg-primary" : i === stepIndex ? "w-10 bg-primary/70" : "w-4 bg-foreground/15"
                 }`}
               />
             ))}
           </div>
         )}
 
-        <div className="flex items-center gap-4">
-          <Link
-            to="/admin/login"
-            className="text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition"
+        <div className="flex items-center gap-3">
+          <HeaderAuthButtons onAuth={() => setShowAuthGate(true)} />
+          {/* Favourites */}
+          <button
+            onClick={() => {
+              const signedUp = localStorage.getItem("cc_signedup") === "true";
+              if (signedUp) setFavOpen(true);
+              else setShowAuthGate(true);
+            }}
+            className="text-sm text-muted-foreground hover:text-foreground transition hidden sm:inline flex items-center gap-1"
           >
-            Admin
-          </Link>
-          <button className="text-sm text-muted-foreground hover:text-foreground transition hidden sm:inline">
-            Save my journey
+            ♡ Favourites
           </button>
         </div>
       </header>
 
-      {/* Background orb (always visible, scales by step) */}
+      {/* Background orb */}
       <motion.div
         animate={{
           scale: step === "intro" ? 1 : step === "results" ? 0.45 : 0.7,
@@ -190,7 +268,7 @@ function Index() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.8 }}
               >
-                <Landing onBegin={beginJourney} />
+                <Landing onBegin={beginJourney} onFavourites={() => setShowAuthGate(true)} />
               </motion.div>
             )}
 
@@ -203,6 +281,12 @@ function Index() {
             {step === "transition1" && (
               <div key="trans1" className="max-w-3xl mx-auto">
                 <Transition message={TRANSITIONS.transition1} />
+              </div>
+            )}
+
+            {step === "environment" && (
+              <div key="environment">
+                <EnvironmentStep value={environment} onSelect={handleEnvironment} />
               </div>
             )}
 
@@ -257,7 +341,6 @@ function Index() {
         </div>
       </main>
 
-      {/* Bottom microcopy hint */}
       {step !== "intro" && step !== "results" && step !== "loading" && (
         <div className="fixed bottom-6 inset-x-0 text-center z-20 pointer-events-none">
           <p className="text-xs text-muted-foreground/60 italic">
@@ -271,7 +354,7 @@ function Index() {
 
 /* ----------------- Rich Landing ----------------- */
 
-function Landing({ onBegin }: { onBegin: () => void }) {
+function Landing({ onBegin, onFavourites }: { onBegin: () => void; onFavourites: () => void }) {
   return (
     <div className="space-y-32 md:space-y-40">
       {/* Hero */}
@@ -315,7 +398,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
           <p className="text-xs text-muted-foreground/70 italic">
-            Takes about 60 seconds. No login required.
+            Takes about 90 seconds. No pressure.
           </p>
         </motion.div>
 
@@ -328,7 +411,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
         >
           {[
             { n: "1,200+", l: "Colleges mapped" },
-            { n: "5", l: "Steps to clarity" },
+            { n: "6", l: "Steps to clarity" },
             { n: "0", l: "Spam emails" },
           ].map((s) => (
             <div key={s.l}>
@@ -339,21 +422,22 @@ function Landing({ onBegin }: { onBegin: () => void }) {
         </motion.div>
       </section>
 
-      {/* The 5-step journey */}
+      {/* The 6-step journey */}
       <section className="max-w-6xl mx-auto px-2">
         <div className="text-center mb-16">
           <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3">How it works</div>
           <h2 className="font-display text-3xl md:text-5xl font-light leading-tight">
-            Five gentle steps. <span className="italic text-aurora">No data anxiety.</span>
+            Six gentle steps. <span className="italic text-aurora">No data anxiety.</span>
           </h2>
         </div>
-        <div className="grid md:grid-cols-5 gap-4">
+        <div className="grid md:grid-cols-6 gap-4">
           {[
             { i: Heart, t: "Feeling", d: "What kind of life do you want?" },
-            { i: Compass, t: "Direction", d: "What pulls you forward?" },
+            { i: Globe, t: "Environment", d: "City, mountains, beaches — what fits you?" },
+            { i: Compass, t: "Direction", d: "What kind of future excites you?" },
             { i: MapPin, t: "Location", d: "Where do you want to wake up?" },
-            { i: Sparkles, t: "Discovery", d: "We curate, you breathe." },
-            { i: GraduationCap, t: "Save", d: "Keep the paths that fit." },
+            { i: Sparkles, t: "Explore", d: "We curate, you breathe." },
+            { i: GraduationCap, t: "Shortlist", d: "Keep the paths that feel right." },
           ].map((s, i) => {
             const Icon = s.i;
             return (
@@ -362,15 +446,15 @@ function Landing({ onBegin }: { onBegin: () => void }) {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
-                transition={{ delay: i * 0.08, duration: 0.6 }}
-                className="glass rounded-2xl p-6 relative"
+                transition={{ delay: i * 0.06, duration: 0.6 }}
+                className="glass rounded-2xl p-5 relative"
               >
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">
                   Step {i + 1}
                 </div>
-                <Icon className="w-6 h-6 mb-4 text-primary" />
-                <div className="font-display text-xl mb-2">{s.t}</div>
-                <div className="text-sm text-muted-foreground">{s.d}</div>
+                <Icon className="w-5 h-5 mb-3 text-primary" />
+                <div className="font-display text-lg mb-1">{s.t}</div>
+                <div className="text-xs text-muted-foreground">{s.d}</div>
               </motion.div>
             );
           })}
@@ -387,9 +471,9 @@ function Landing({ onBegin }: { onBegin: () => void }) {
         </div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { k: "Strong career opportunities", d: "Placements, networks, momentum.", hue: 200 },
-            { k: "A peaceful campus life", d: "Trees, focus, real friendships.", hue: 145 },
-            { k: "A creative environment", d: "Studios, makers, late-night ideas.", hue: 330 },
+            { k: "Fast, ambitious, career-focused", d: "Placements, networks, momentum.", hue: 200 },
+            { k: "Calm, focused, distraction-free", d: "Trees, focus, real friendships.", hue: 145 },
+            { k: "Creative & expressive", d: "Studios, makers, late-night ideas.", hue: 330 },
           ].map((c, i) => (
             <motion.div
               key={c.k}
@@ -416,7 +500,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
         </div>
       </section>
 
-      {/* Why Student X'orb */}
+      {/* Why X'Orb */}
       <section className="max-w-5xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <motion.div
@@ -425,7 +509,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3">Why Student X'orb</div>
+            <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3">Why X'Orb</div>
             <h2 className="font-display text-3xl md:text-4xl font-light leading-tight mb-6">
               The internet sells colleges. <span className="italic text-aurora">We help you choose one.</span>
             </h2>
@@ -435,7 +519,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
           </motion.div>
           <div className="space-y-4">
             {[
-              { i: ShieldCheck, t: "No login walls", d: "Your journey is yours. We never gate the experience." },
+              { i: ShieldCheck, t: "Sign up to save", d: "Keep your shortlist safe. Access from any device, anytime." },
               { i: Users, t: "Built for real students", d: "Cards, not spreadsheets. Stories, not stats." },
               { i: Sparkles, t: "Calm by design", d: "Soft motion, generous space, zero pressure." },
             ].map((b, i) => {
@@ -501,9 +585,10 @@ function Landing({ onBegin }: { onBegin: () => void }) {
         <div className="space-y-3">
           {[
             { q: "Do I need my marks to begin?", a: "No. We start with how you want to live, not a number." },
-            { q: "How long does this take?", a: "About 60 seconds for a first pass. You can refine later." },
-            { q: "Will you spam me?", a: "There's no signup required. Save only when you want to." },
+            { q: "How long does this take?", a: "About 90 seconds for a first pass. You can refine later." },
+            { q: "Will you spam me?", a: "No. You only sign up when you want to save your favourites." },
             { q: "What if I'm completely unsure?", a: "Pick \"still figuring it out\" — that's a real, valid answer." },
+            { q: "Can I change my answers later?", a: "Yes — absolutely. Everything is adjustable at any step." },
           ].map((f, i) => (
             <motion.details
               key={f.q}

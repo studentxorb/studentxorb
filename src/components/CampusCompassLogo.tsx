@@ -5,16 +5,20 @@ interface LogoProps {
   showWordmark?: boolean;
 }
 
-export function CampusCompassLogo({ size = 40, className = "", showWordmark = true }: LogoProps) {
+export function CampusCompassLogo({
+  size = 40,
+  className = "",
+  showWordmark = true,
+}: LogoProps) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 200 200"
         fill="none"
         width={size}
         height={size}
-        aria-label="Campus Compass logo"
+        aria-label="Student X'orb logo"
       >
         <defs>
           <linearGradient id="cc-bg" x1="0" y1="0" x2="1" y2="1">
@@ -44,8 +48,24 @@ export function CampusCompassLogo({ size = 40, className = "", showWordmark = tr
 
         {/* Background */}
         <circle cx="100" cy="100" r="96" fill="url(#cc-bg)" />
-        <circle cx="100" cy="100" r="88" stroke="#6366f1" strokeWidth="1.5" strokeOpacity="0.3" fill="none" />
-        <circle cx="100" cy="100" r="64" fill="none" stroke="url(#cc-ring)" strokeWidth="1.5" strokeOpacity="0.5" />
+        <circle
+          cx="100"
+          cy="100"
+          r="88"
+          stroke="#6366f1"
+          strokeWidth="1.5"
+          strokeOpacity="0.3"
+          fill="none"
+        />
+        <circle
+          cx="100"
+          cy="100"
+          r="64"
+          fill="none"
+          stroke="url(#cc-ring)"
+          strokeWidth="1.5"
+          strokeOpacity="0.5"
+        />
 
         {/* Cardinal ticks */}
         <g stroke="#818cf8" strokeWidth="1.2" strokeOpacity="0.6">
@@ -60,35 +80,88 @@ export function CampusCompassLogo({ size = 40, className = "", showWordmark = tr
         </g>
 
         {/* Cardinal letters */}
-        <g fontFamily="'Helvetica Neue', Arial, sans-serif" fontSize="11" fontWeight="700" textAnchor="middle" dominantBaseline="central">
-          <text x="100" y="30" fill="#c084fc" filter="url(#cc-glow)">N</text>
-          <text x="100" y="172" fill="#a5b4fc">S</text>
-          <text x="28" y="101" fill="#a5b4fc">W</text>
-          <text x="172" y="101" fill="#a5b4fc">E</text>
+        <g
+          fontFamily="'Helvetica Neue', Arial, sans-serif"
+          fontSize="11"
+          fontWeight="700"
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          <text x="100" y="30" fill="#c084fc" filter="url(#cc-glow)">
+            N
+          </text>
+          <text x="100" y="172" fill="#a5b4fc">
+            S
+          </text>
+          <text x="28" y="101" fill="#a5b4fc">
+            W
+          </text>
+          <text x="172" y="101" fill="#a5b4fc">
+            E
+          </text>
         </g>
 
         {/* Needle north */}
-        <polygon points="100,48 105,100 100,96 95,100" fill="url(#cc-north)" filter="url(#cc-glow)" transform="rotate(-35 100 100)" />
+        <polygon
+          points="100,48 105,100 100,96 95,100"
+          fill="url(#cc-north)"
+          filter="url(#cc-glow)"
+          transform="rotate(-35 100 100)"
+        />
+
         {/* Needle south */}
-        <polygon points="100,152 105,100 100,104 95,100" fill="url(#cc-south)" opacity="0.75" transform="rotate(-35 100 100)" />
+        <polygon
+          points="100,152 105,100 100,104 95,100"
+          fill="url(#cc-south)"
+          opacity="0.75"
+          transform="rotate(-35 100 100)"
+        />
 
         {/* Center */}
-        <circle cx="100" cy="100" r="7" fill="#312e81" stroke="#818cf8" strokeWidth="2" />
-        <circle cx="100" cy="100" r="3.5" fill="#c084fc" filter="url(#cc-glow)" />
+        <circle
+          cx="100"
+          cy="100"
+          r="7"
+          fill="#312e81"
+          stroke="#818cf8"
+          strokeWidth="2"
+        />
+        <circle
+          cx="100"
+          cy="100"
+          r="3.5"
+          fill="#c084fc"
+          filter="url(#cc-glow)"
+        />
 
         {/* Mortarboard */}
         <g transform="translate(100, 66)" filter="url(#cc-glow)">
-          <polygon points="0,-9 16,0 0,9 -16,0" fill="#f0abfc" opacity="0.95" />
+          <polygon
+            points="0,-9 16,0 0,9 -16,0"
+            fill="#f0abfc"
+            opacity="0.95"
+          />
           <rect x="-5" y="-13" width="10" height="5" rx="1" fill="#c084fc" />
-          <line x1="16" y1="0" x2="16" y2="9" stroke="#f0abfc" strokeWidth="1.5" />
+          <line
+            x1="16"
+            y1="0"
+            x2="16"
+            y2="9"
+            stroke="#f0abfc"
+            strokeWidth="1.5"
+          />
           <circle cx="16" cy="10" r="1.5" fill="#f0abfc" />
         </g>
       </svg>
 
       {showWordmark && (
-        <div className="flex flex-col leading-none">
-          <span className="text-lg font-bold tracking-tight text-white">Campus</span>
-          <span className="text-lg font-bold tracking-tight text-indigo-400">Compass</span>
+        <div className="leading-none">
+          <span className="text-lg font-bold tracking-tight text-white">
+            Student{" "}
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-300 bg-clip-text text-transparent">
+              X'orb
+            </span>
+          </span>
         </div>
       )}
     </div>

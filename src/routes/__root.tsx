@@ -29,10 +29,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Campus Compass — Find your college journey" },
+      { title: "Student X'orb — Find your college journey" },
       { name: "description", content: "A guided, conversational journey to discover the college that fits the life you want." },
-      { name: "author", content: "Campus Compass" },
-      { property: "og:title", content: "Campus Compass — Find your college journey" },
+      { name: "author", content: "Student X'orb" },
+      { property: "og:title", content: "Student X'orb — Find your college journey" },
       { property: "og:description", content: "An emotionally intelligent way to choose your college." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

@@ -14,13 +14,13 @@ import { CampusCompassLogo } from "@/components/CampusCompassLogo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Campus Compass — From uncertainty to clarity" },
+      { title: "Student X'orb — From uncertainty to clarity" },
       {
         name: "description",
         content:
           "A guided, conversational journey to discover the college that fits the life you want — not just the marks you have.",
       },
-      { property: "og:title", content: "Campus Compass — From uncertainty to clarity" },
+      { property: "og:title", content: "Student X'orb — From uncertainty to clarity" },
       {
         property: "og:description",
         content: "An emotionally intelligent way to choose your college.",
@@ -416,7 +416,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
         </div>
       </section>
 
-      {/* Why Campus Compass */}
+      {/* Why Student X'orb */}
       <section className="max-w-5xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <motion.div
@@ -425,7 +425,7 @@ function Landing({ onBegin }: { onBegin: () => void }) {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3">Why Campus Compass</div>
+            <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3">Why Student X'orb</div>
             <h2 className="font-display text-3xl md:text-4xl font-light leading-tight mb-6">
               The internet sells colleges. <span className="italic text-aurora">We help you choose one.</span>
             </h2>

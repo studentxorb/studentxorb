@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 // Get your anon key from: Supabase Dashboard → Settings → API → anon public key
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://bjloklyafimvfbhugyij.supabase.co";
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-key-not-configured";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

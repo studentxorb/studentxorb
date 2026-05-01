@@ -66,7 +66,7 @@ function HeaderAuthButtons({ onAuth }: { onAuth: () => void }) {
   );
 }
 
-function AuthGateModal({ onClose }: { onClose: () => void }) {
+function AuthGateModal({ onClose, navigate }: { onClose: () => void; navigate: (opts: { to: string }) => void }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -91,14 +91,13 @@ function AuthGateModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex flex-col gap-3">
           <button
-            className="rounded-full py-3 font-medium text-primary-foreground w-full"
+            onClick={() => { onClose(); navigate({ to: "/admin/login" }); }} className="rounded-full py-3 font-medium text-primary-foreground w-full"
             style={{ background: "var(--gradient-aurora)" }}
           >
             Sign Up
           </button>
           <button
-            onClick={onClose}
-            className="rounded-full py-3 font-medium text-foreground w-full glass ring-1 ring-foreground/10 hover:ring-foreground/20 transition"
+            onClick={() => { onClose(); navigate({ to: "/admin/login" }); }} className="rounded-full py-3 font-medium text-foreground w-full glass ring-1 ring-foreground/10 hover:ring-foreground/20 transition"
           >
             Sign In
           </button>
@@ -119,6 +118,7 @@ function Index() {
   const [direction, setDirection] = useState<string | null>(null);
   const [states, setStates] = useState<string[]>([]);
   const [showAuthGate, setShowAuthGate] = useState(false);
+  const navigate = useNavigate();
 
   // Hydrate from share link
   useEffect(() => {
@@ -218,7 +218,7 @@ function Index() {
     <div className="min-h-screen relative overflow-x-hidden">
       {/* Auth gate */}
       <AnimatePresence>
-        {showAuthGate && <AuthGateModal onClose={() => setShowAuthGate(false)} />}
+        {showAuthGate && <AuthGateModal onClose={() => setShowAuthGate(false)} navigate={navigate} />}
       </AnimatePresence>
 
       {/* Top nav */}
@@ -655,6 +655,7 @@ function Landing({ onBegin, onFavourites }: { onBegin: () => void; onFavourites:
     </div>
   );
 }
+
 
 
 

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Sparkles, Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name } },
+          options: { data: { full_name: name, username } },
         });
         if (error) throw error;
         // Auto sign in immediately after signup (requires email confirmation disabled in Supabase)
@@ -90,10 +91,10 @@ function AuthPage() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-light">
-              {mode === "signin" ? "Sign in" : "Create your account"}
+              {mode === "signin" ? "Welcome back" : "Create your account"}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {mode === "signin" ? "Save favorites and pick up where you left off." : "Save what fits — your shortlist, your pace."}
+              {mode === "signin" ? "Sign in to access your saved colleges." : "Join to save your shortlist and pick up where you left off."}
             </p>
           </div>
         </div>
@@ -103,21 +104,32 @@ function AuthPage() {
           className="w-full glass rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 hover:ring-1 hover:ring-primary/40 mb-4"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" opacity=".8" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
-          Continue with Google
+          {mode === "signin" ? "Sign in with Google" : "Sign up with Google"}
         </button>
 
         <div className="flex items-center gap-3 my-4 text-[10px] uppercase tracking-widest text-muted-foreground">
-          <div className="flex-1 h-px bg-foreground/10" /> or email <div className="flex-1 h-px bg-foreground/10" />
+          <div className="flex-1 h-px bg-foreground/10" /> or with email <div className="flex-1 h-px bg-foreground/10" />
         </div>
 
         <form onSubmit={submit} className="space-y-3">
           {mode === "signup" && (
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              className="w-full glass rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary/60"
-            />
+            <>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Full name"
+                required
+                className="w-full glass rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary/60"
+              />
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/\s/g, "").toLowerCase())}
+                placeholder="Username (e.g. rahul23)"
+                required
+                minLength={3}
+                className="w-full glass rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary/60"
+              />
+            </>
           )}
           <div className="relative">
             <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -136,7 +148,7 @@ function AuthPage() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password (6+ chars)"
+            placeholder="Password (6+ characters)"
             className="w-full glass rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary/60"
           />
           <button
@@ -145,29 +157,20 @@ function AuthPage() {
             className="w-full rounded-full px-6 py-3 font-medium text-primary-foreground disabled:opacity-50"
             style={{ background: "var(--gradient-aurora)" }}
           >
-            {busy ? "…" : mode === "signin" ? "Sign in" : "Create account"}
+            {busy ? "…" : mode === "signin" ? "Sign in →" : "Create account →"}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
+          {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="text-primary hover:underline"
+            className="text-primary hover:underline font-medium"
           >
-            {mode === "signin" ? "Create one" : "Sign in"}
+            {mode === "signin" ? "Sign up" : "Sign in"}
           </button>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-foreground/10">
-          <div className="flex items-start gap-3 text-xs text-muted-foreground">
-            <Sparkles className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" />
-            <div>
-              <div className="font-medium text-foreground mb-1">Admin?</div>
-              Sign in with your admin email — you'll be routed to the admin dashboard automatically.
-            </div>
-          </div>
-        </div>
       </motion.div>
     </div>
   );

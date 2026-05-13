@@ -13,6 +13,16 @@ const ICONS: Record<string, string> = {
   Arts: "✦",
   Commerce: "◈",
   Others: "○",
+  Exploring: "✧",
+};
+
+const TAGLINES: Record<string, string> = {
+  Engineering: "Build the future, one system at a time.",
+  Medical: "Heal, discover, and make lives better.",
+  Arts: "Create, express, and change how the world sees.",
+  Commerce: "Shape business, finance, and the economy.",
+  Others: "Law, social sciences, design, and beyond.",
+  Exploring: "Not sure yet — that's completely okay.",
 };
 
 export function DirectionStep({ value, onSelect }: Props) {
@@ -48,6 +58,7 @@ export function DirectionStep({ value, onSelect }: Props) {
             >
               <span className="text-3xl text-aurora font-light">{ICONS[d] ?? "✧"}</span>
               <span className="text-sm font-medium text-foreground">{d}</span>
+              <span className="text-[10px] text-muted-foreground text-center leading-snug px-1">{TAGLINES[d] ?? ""}</span>
             </motion.button>
           );
         })}

@@ -8,9 +8,11 @@ type Props = {
   value: string[];
   onChange: (next: string[]) => void;
   onContinue: () => void;
+  homeState?: string;
+  onHomeStateChange?: (s: string) => void;
 };
 
-export function LocationStep({ value, onChange, onContinue, suggested = [] }: Props & { suggested?: string[] }) {
+export function LocationStep({ value, onChange, onContinue, suggested = [], homeState = "", onHomeStateChange }: Props & { suggested?: string[] }) {
   const { states: STATES } = useContent();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -57,6 +59,21 @@ export function LocationStep({ value, onChange, onContinue, suggested = [] }: Pr
             </motion.button>
           ))}
         </AnimatePresence>
+      </div>
+
+      {/* Home State */}
+      <div className="mb-4">
+        <div className="text-[10px] uppercase tracking-widest text-primary mb-2">Your home state</div>
+        <select
+          value={homeState}
+          onChange={(e) => onHomeStateChange?.(e.target.value)}
+          className="w-full glass rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary/60 bg-transparent"
+        >
+          <option value="">Select your home state</option>
+          {STATES.map((s) => (
+            <option key={s} value={s} className="bg-background text-foreground">{s}</option>
+          ))}
+        </select>
       </div>
 
       <div className="glass rounded-3xl p-5 space-y-4">

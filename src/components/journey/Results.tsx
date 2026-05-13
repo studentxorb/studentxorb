@@ -21,6 +21,7 @@ type Props = {
   feeling: string | null;
   direction: string | null;
   states: string[];
+  homeState?: string;
   loading: boolean;
   onRefine: () => void;
   onRestart: () => void;
@@ -132,7 +133,7 @@ function buildWhyItFits(
   };
 }
 
-export function Results({ feeling, direction, states, loading, onRefine, onRestart }: Props) {
+export function Results({ feeling, direction, states, homeState = "", loading, onRefine, onRestart }: Props) {
   const { colleges, settings, feelings } = useContent();
   const [copied, setCopied] = useState(false);
 
@@ -309,10 +310,18 @@ export function Results({ feeling, direction, states, loading, onRefine, onResta
         return ai - bi;
       });
     }
+    // Boost colleges from home state to the top within their tier
+    if (homeState) {
+      pool = [...pool].sort((a, b) => {
+        const aHome = a.state === homeState ? 0 : 1;
+        const bHome = b.state === homeState ? 0 : 1;
+        return aHome - bHome;
+      });
+    }
     // Honor admin-defined order within tier
     pool = [...pool].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     return pool;
-  }, [feeling, direction, states, colleges, settings.allowStateMismatch]);
+  }, [feeling, direction, states, homeState, colleges, settings.allowStateMismatch]);
 
   const visible = filtered.slice(0, shown);
 

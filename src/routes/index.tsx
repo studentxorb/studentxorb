@@ -43,6 +43,7 @@ function Index() {
   const [feeling, setFeeling] = useState<string | null>(null);
   const [direction, setDirection] = useState<string | null>(null);
   const [states, setStates] = useState<string[]>([]);
+  const [homeState, setHomeState] = useState<string>("");
   const [environment, setEnvironment] = useState<string | null>(null);
   const [suggestedStates, setSuggestedStates] = useState<string[]>([]);
   const { user } = useAuth();
@@ -250,6 +251,8 @@ function Index() {
                   onChange={setStates}
                   onContinue={handleLocationContinue}
                   suggested={suggestedStates}
+                  homeState={homeState}
+                  onHomeStateChange={setHomeState}
                 />
               </div>
             )}
@@ -279,6 +282,7 @@ function Index() {
                   feeling={feeling}
                   direction={direction}
                   states={states}
+                  homeState={homeState}
                   loading={step === "loading"}
                   onRefine={refine}
                   onRestart={restart}
